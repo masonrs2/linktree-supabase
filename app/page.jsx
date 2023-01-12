@@ -5,6 +5,7 @@ import pfp from '../assets/pfp.jpeg'
 import Image from 'next/image'
 import Link from 'next/link'
 import { BsCheck2All } from 'react-icons/bs'
+import ImageUploading, { ImageListType } from 'react-images-uploading'
 
 const page = () => {
   const [isAuthentificated, setIsAuthentificated] = useState(false)
@@ -15,6 +16,11 @@ const page = () => {
   const [url, setUrl] = useState('')
   const [links, setLinks] = useState()
   const [svg, setSvg] = useState('')
+  const [images, setImages] = useState([])
+  
+  const onChange = (imageList) => {
+    setImages(imageList)
+  }
 
   const addNewLink = async () => {
     try{
@@ -36,6 +42,38 @@ const page = () => {
         
     } catch (error) {
       console.log( "error", error)
+    }
+  }
+
+  const uploadProfilePic = async () => {
+    try {
+      if(images.length > 0) { 
+        const image = image[0]
+  
+        if(image.file && userId) {
+          const { data, error } = await supabase.storage.
+                from("public")
+                .upload(`${userId}/${image.file.name}`, image.file , { upsert: true, })
+
+          if(error) throw error
+
+          const resp = await supabase.storage.from("public").getPublicUrl(data.path);
+          console.log("resp", resp)
+          const publicUrl = resp.data.publicUrl;
+          console.log("publicUr", publicUrl)
+
+          const updateUserResponse = await supabase
+                  .from("users")
+                  .update({ profile_pic_url: publicUrl })
+                  .eq('id', userId);
+
+                  if(updateUserResponse.error) throw updateUserResponse.error
+
+        }
+      }
+
+    } catch (error) {
+      console.log("error: ", error)
     }
   }
 
@@ -88,9 +126,10 @@ const page = () => {
             </Link>
           </div>
         ) }
-          <Image width={40} height={40} src={pfp} alt="pfp" className="rounded object-contain" >
+        { images.length > 0 &&
+          <Image width={40} height={40} src={images[0]["data_url"]} alt="pfp" className="rounded object-contain" >
             </Image>
-            
+        }
             <h1 className="font-semibold text-xl mt-4">@mxsonrs</h1>
 
             { isAuthentificated && (
@@ -150,6 +189,34 @@ const page = () => {
                     <button onClick={addNewLink} type="button" className="py-2 px-4  bg-black hover:bg-gray-800   focus:ring-gray-700 focus:ring-offset-indigo-200 text-gray-300 w-80 justify-center flex transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2  rounded-lg mb-10">
                           Submit
                   </button>
+
+                  <ImageUploading 
+                    multiple
+                    value={images}
+                    onChange={onChange}
+                    maxNumber={1}
+                    dataURLKey="data_url"
+                  >
+                    {({onImageUpload, onImageRemoveAll, isDragging, dragProps}) => (
+                      <div>
+                        {images.length === 0 ? (
+                          <div onClick={uploadProfilePic}>
+                            <button
+                              style={isDragging ? { color: "red" } : undefined}
+                              onClick={onImageUpload}
+                              {...dragProps}
+                              className=" bg-black hover:bg-gray-800   focus:ring-gray-700 focus:ring-offset-indigo-200 text-gray-300 w-80 justify-center flex transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 h-10 flex items-center ml-3 rounded-lg mb-10"
+                            >
+                              Upload image
+                            </button>
+                          </div>
+                        ) : (
+                          <button onClick={onImageRemoveAll} className=" bg-black hover:bg-gray-800   focus:ring-gray-700 focus:ring-offset-indigo-200 text-gray-300 w-80 justify-center flex transition ease-in duration-200 text-center text-base font-semibold shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 h-10 flex items-center ml-3 rounded-lg mb-10">Remove all images</button>
+                        )}
+                      </div>
+                    )}
+                  </ImageUploading>
+
                   </div>
                 </div>
               )

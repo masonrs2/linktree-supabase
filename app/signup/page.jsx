@@ -20,22 +20,38 @@ const page = () => {
                 const userId = resp.data.user?.id;
                 console.log("userId: ", userId);
                 console.log("email", email);
+
+                if(userId) {
+
+                    await createUser(userId);
+                }
                 router.push('/')
             }
-  
   
         } catch (error) {
             console.log("error: ", error);
         }
     }
- 
+
+    async function createUser(userId) { 
+        try { 
+            const { error } = await supabase
+                    .from("users")
+                    .insert({ id: userId })
+
+            if(error) throw error
+        } catch (error) {
+            console.log("error")
+        }
+    }
     
+
 
   return (
     <div className="w-screen flex">
         <div className="justify-center w-full h-screen items-center flex">
             <div className="bg-white/25 px-12 rounded-md">
-                <h1 className="mt-10 justify-center w-full pl-32 text-2xl text-white font-light  ">Sign up</h1>
+                <h1 className="mt-10 justify-center w-full pl-32 text-2xl text-white font-light  ">Sign up</h1> 
 
                 <form >
                     <input 
